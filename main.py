@@ -20,7 +20,7 @@ class Row:
         self.message = message
 
 
-ROWS = [
+INITIAL_ROWS = [
     Row(datetime.now().isoformat(), "#team", "alice", "#team", "sent", "message 1"),
     Row(datetime.now().isoformat(), "alice--bob", "alice", "bob", "sent", "message 2"),
     Row(datetime.now().isoformat(), "#team", "eve", "#team", "sent", "message 3"),
@@ -51,18 +51,28 @@ class TableApp(App):
         self.object_editing = None
 
     def compose(self) -> ComposeResult:
-        yield ObjectTable(ROWS)
+        yield ObjectTable[Row](INITIAL_ROWS)
         yield CustomFooter(self.BINDINGS)
 
     def action_filter(self):
         table = self.query_one(ObjectTable)
         table.toggle_filter_column()
 
+    def action_duplicate(self):
+        table: ObjectTable[Row] = self.query_one(ObjectTable)
+        object_at_row = table.coordinate_to_object(table.cursor_row)
+        table.add_object(Row(datetime.now().isoformat(),
+                             object_at_row.channel,
+                             object_at_row.sender,
+                             object_at_row.receiver,
+                             object_at_row.status,
+                             object_at_row.message))
+
     @on(ObjectTable.CellSelected)
     def on_cell_selected(self, event: ObjectTable.CellSelected):
         table = self.query_one(ObjectTable)
-        row = table.coordinate_to_object(event.coordinate.row)
-        object_dict = {field: getattr(row, field) for field in table.get_objects_fields()}
+        object_at_row = table.coordinate_to_object(event.coordinate.row)
+        object_dict = {field: getattr(object_at_row, field) for field in table.get_objects_fields()}
         self.push_screen(TextAreaScreen(json.dumps(object_dict, indent=2)), self.callback_edit_row)
 
     def callback_edit_row(self, result: str):

@@ -1,4 +1,4 @@
-from typing import List, Any, Dict
+from typing import List, T, Dict
 
 from rich.style import Style
 from rich.text import Text
@@ -8,11 +8,10 @@ from textual.widgets import DataTable
 from context.datatablecursorlock import DataTableCursorLock
 
 
-class ObjectTable(DataTable):
-    def __init__(self, objects: List[Any]):
+class ObjectTable[T](DataTable):
+    def __init__(self, objects: List[T]):
         super().__init__()
-        self.objects: List[Any] = objects
-        self.objects_displayed: List[Any] = objects
+        self.objects: List[T] = objects
         self.filters: Dict[str, str] = {}
 
     def get_objects_fields(self):
@@ -33,7 +32,7 @@ class ObjectTable(DataTable):
     def on_mount(self):
         self._reload()
 
-    def coordinate_to_object(self, coord_row: int) -> str:
+    def coordinate_to_object(self, coord_row: int) -> T:
         (row_key, _) = self.coordinate_to_cell_key(Coordinate(coord_row, 0))
         return self.objects[int(row_key.value)]
 
@@ -49,7 +48,22 @@ class ObjectTable(DataTable):
         for index, field in enumerate(self.get_objects_fields()):
             self.update_cell_at(Coordinate(coord_row, index), getattr(object_at_coord, field), update_width=True)
 
-    def _object_matches_filters(self, object_element: Any) -> bool:
+    def add_object(self, new_object: T):
+        """
+        Adds an object to the end of the table.
+
+        Note that this does not apply filters to the object.
+        :param new_object:
+        :return:
+        """
+        self.objects.append(new_object)
+        columns = self.get_objects_fields()
+        row_key = len(self.objects) - 1
+        self.add_row(*[getattr(new_object, field) for field in columns], key=str(row_key))
+        new_object_coord = Coordinate(row_key, 0)
+        self.move_cursor(row=new_object_coord.row)
+
+    def _object_matches_filters(self, object_element: T) -> bool:
         return all(getattr(object_element, field) == value for field, value in self.filters.items())
 
     def toggle_filter_column(self):
