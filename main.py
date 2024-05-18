@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import json
 from datetime import datetime
+from typing import Tuple
 
 from textual import on
 from textual.app import App, ComposeResult
@@ -11,7 +12,7 @@ from widgets.objecttable import ObjectTable
 
 
 class Row:
-    def __init__(self, time, channel, sender, receiver, status, message):
+    def __init__(self, time=None, channel=None, sender=None, receiver=None, status=None, message=None):
         self.time = time
         self.channel = channel
         self.sender = sender
@@ -64,10 +65,13 @@ class TableApp(App):
         object_dict = {field: getattr(object_at_row, field) for field in table.get_objects_fields()}
         self.push_screen(TextAreaScreen(json.dumps(object_dict, indent=2)), self.callback_create_row)
 
-    def callback_create_row(self, result: str):
+    def callback_create_row(self, result: Tuple[str, bool]):
+        object_json, confirmed = result
+        if not confirmed:
+            return
         table = self.query_one(ObjectTable)
         try:
-            object_dict = json.loads(result)
+            object_dict = json.loads(object_json)
             table.add_object(Row(**object_dict))
         except json.JSONDecodeError:
             return
@@ -80,9 +84,12 @@ class TableApp(App):
         self.push_screen(TextAreaScreen(json.dumps(object_dict, indent=2)), self.callback_edit_row)
 
     def callback_edit_row(self, result: str):
-        table = self.query_one(ObjectTable)
+        object_json, confirmed = result
+        if not confirmed:
+            return
         try:
-            object_dict = json.loads(result)
+            table = self.query_one(ObjectTable)
+            object_dict = json.loads(object_json)
             object_at_row = table.coordinate_to_object(table.cursor_row)
             for field, value in object_dict.items():
                 setattr(object_at_row, field, value)

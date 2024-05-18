@@ -23,7 +23,7 @@ class TextAreaScreen(ModalScreen):
     """
 
     BINDINGS = [
-        ("escape", "modal_cancel", "Close"),
+        ("escape", "modal_cancel", "Cancel"),
         ("ctrl+s", "save", "Save"),
     ]
 
@@ -38,7 +38,7 @@ class TextAreaScreen(ModalScreen):
 
     def action_save(self):
         result = self.query_one(TextArea).text
-        self.dismiss(result)
+        self.dismiss((result, True))
 
     def action_modal_cancel(self):
-        self.dismiss(self.initial_value)
+        self.dismiss((self.initial_value, False))
