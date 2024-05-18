@@ -59,14 +59,18 @@ class TableApp(App):
         table.toggle_filter_column()
 
     def action_duplicate(self):
-        table: ObjectTable[Row] = self.query_one(ObjectTable)
+        table = self.query_one(ObjectTable)
         object_at_row = table.coordinate_to_object(table.cursor_row)
-        table.add_object(Row(datetime.now().isoformat(),
-                             object_at_row.channel,
-                             object_at_row.sender,
-                             object_at_row.receiver,
-                             object_at_row.status,
-                             object_at_row.message))
+        object_dict = {field: getattr(object_at_row, field) for field in table.get_objects_fields()}
+        self.push_screen(TextAreaScreen(json.dumps(object_dict, indent=2)), self.callback_create_row)
+
+    def callback_create_row(self, result: str):
+        table = self.query_one(ObjectTable)
+        try:
+            object_dict = json.loads(result)
+            table.add_object(Row(**object_dict))
+        except json.JSONDecodeError:
+            return
 
     @on(ObjectTable.CellSelected)
     def on_cell_selected(self, event: ObjectTable.CellSelected):
@@ -79,9 +83,9 @@ class TableApp(App):
         table = self.query_one(ObjectTable)
         try:
             object_dict = json.loads(result)
-            row = table.coordinate_to_object(table.cursor_row)
+            object_at_row = table.coordinate_to_object(table.cursor_row)
             for field, value in object_dict.items():
-                setattr(row, field, value)
+                setattr(object_at_row, field, value)
             table.update_object_at(table.cursor_row)
         except json.JSONDecodeError:
             return
