@@ -11,12 +11,6 @@ from context.datatablecursorlock import DataTableCursorLock
 
 
 class ObjectTable[T](DataTable):
-    DEFAULT_CSS = """
-    ObjectTable {
-        overflow-y: scroll;
-    }
-    """
-
     class ObjectSelected[T](Message):
         def __init__(self, object_value: T, trigger: DataTable.CellSelected):
             self.object_value: T = object_value
@@ -79,6 +73,8 @@ class ObjectTable[T](DataTable):
         self.add_row(*[getattr(new_object, field) for field in columns], key=row_key)
         row_index = self.get_row_index(row_key)
         self.move_cursor(row=row_index)
+        # this is a fix for new rows causing the scrollbar to appear during screen callback
+        self.call_after_refresh(self.move_cursor, row=row_index)
 
     def toggle_filter_column(self):
         """
