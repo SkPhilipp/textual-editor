@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 import json
 from datetime import datetime
-from typing import Tuple
 
-from textual import on
+from textual import on, work
 from textual.app import App, ComposeResult
 
 from screens.textareascreen import TextAreaScreen
@@ -59,7 +58,8 @@ class TableApp(App):
         table = self.query_one(ObjectTable)
         table.toggle_filter_column()
 
-    def action_duplicate_from_row(self):
+    @work
+    async def action_duplicate_from_row(self):
         table = self.query_one(ObjectTable)
         communication = table.coordinate_to_object(table.cursor_row)
         communication_dict = {
@@ -70,28 +70,25 @@ class TableApp(App):
             "status": "paused",
             "message": "",
         }
-
-        def callback(result: Tuple[str, bool]):
-            result_json, confirmed = result
-            if not confirmed:
+        try:
+            result_json = await self.push_screen_wait(TextAreaScreen(json.dumps(communication_dict, indent=2)))
+            if result_json is None:
                 return
-            try:
-                result_dict = json.loads(result_json)
-                table.add_object(Communication(
-                    time=result_dict["time"],
-                    channel=result_dict["channel"],
-                    sender=result_dict["sender"],
-                    receiver=result_dict["receiver"],
-                    status=result_dict["status"],
-                    message=result_dict["message"],
-                ))
-            except json.JSONDecodeError:
-                return
-
-        self.push_screen(TextAreaScreen(json.dumps(communication_dict, indent=2)), callback)
+            result_dict = json.loads(result_json)
+            table.add_object(Communication(
+                time=result_dict["time"],
+                channel=result_dict["channel"],
+                sender=result_dict["sender"],
+                receiver=result_dict["receiver"],
+                status=result_dict["status"],
+                message=result_dict["message"],
+            ))
+        except json.JSONDecodeError:
+            return
 
     @on(ObjectTable.ObjectSelected)
-    def on_object_selected(self, event: ObjectTable.ObjectSelected):
+    @work
+    async def on_object_selected(self, event: ObjectTable.ObjectSelected):
         communication = event.object_value
         communication_dict = {
             "time": communication.time,
@@ -102,24 +99,21 @@ class TableApp(App):
             "message": communication.message,
         }
 
-        def callback(result: Tuple[str, bool]):
-            result_json, confirmed = result
-            if not confirmed:
+        try:
+            result_json = await self.push_screen_wait(TextAreaScreen(json.dumps(communication_dict, indent=2)))
+            if result_json is None:
                 return
-            try:
-                result_dict = json.loads(result_json)
-                communication.time = result_dict["time"]
-                communication.channel = result_dict["channel"]
-                communication.sender = result_dict["sender"]
-                communication.receiver = result_dict["receiver"]
-                communication.status = result_dict["status"]
-                communication.message = result_dict["message"]
-                table = self.query_one(ObjectTable)
-                table.refresh_object(communication)
-            except json.JSONDecodeError:
-                return
-
-        self.push_screen(TextAreaScreen(json.dumps(communication_dict, indent=2)), callback)
+            result_dict = json.loads(result_json)
+            communication.time = result_dict["time"]
+            communication.channel = result_dict["channel"]
+            communication.sender = result_dict["sender"]
+            communication.receiver = result_dict["receiver"]
+            communication.status = result_dict["status"]
+            communication.message = result_dict["message"]
+            table = self.query_one(ObjectTable)
+            table.refresh_object(communication)
+        except json.JSONDecodeError:
+            return
 
 
 if __name__ == "__main__":

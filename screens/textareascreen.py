@@ -38,7 +38,7 @@ class TextAreaScreen(ModalScreen):
 
     def action_save(self):
         result = self.query_one(TextArea).text
-        self.dismiss((result, True))
+        self.dismiss(result)
 
     def action_modal_cancel(self):
-        self.dismiss((self.initial_value, False))
+        self.dismiss()
