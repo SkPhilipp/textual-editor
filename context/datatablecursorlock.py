@@ -4,6 +4,8 @@ from textual.widgets import DataTable
 class DataTableCursorLock:
     """
     A context manager that restores the cursor position of a DataTable after the block is executed.
+
+    Note that the cell key must be remain valid .after the block is executed.
     """
 
     def __init__(self, table: DataTable):
